@@ -221,18 +221,21 @@
 
         const chartTextColor = '#CCD6F6';
         const chartGridColor = 'rgba(204, 214, 246, 0.2)';
+        let benefitChart, investmentChart;
 
-        const benefitCompositionCtx = document.getElementById('benefitCompositionChart').getContext('2d');
-        const benefitChart = new Chart(benefitCompositionCtx, {
-            type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#64FFDA', '#FFC107', '#E03616'], borderColor: '#0A192F', borderWidth: 4, hoverOffset: 8 }] },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { color: chartTextColor } } } }
-        });
+        function initializeCharts() {
+            const benefitCompositionCtx = document.getElementById('benefitCompositionChart').getContext('2d');
+            benefitChart = new Chart(benefitCompositionCtx, {
+                type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#64FFDA', '#FFC107', '#E03616'], borderColor: '#0A192F', borderWidth: 4, hoverOffset: 8 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { color: chartTextColor } } } }
+            });
 
-        const investmentVsProfitCtx = document.getElementById('investmentVsProfitChart').getContext('2d');
-        const investmentChart = new Chart(investmentVsProfitCtx, {
-            type: 'bar', data: { labels: ['Inwestycja', 'Potencjalna Korzyść'], datasets: [{ data: [], backgroundColor: ['#E03616', '#64FFDA'], borderWidth: 1, borderRadius: 5 }] },
-            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { color: chartTextColor, callback: (v) => formatCurrency(v) }, grid: { color: chartGridColor } }, y: { ticks: { color: chartTextColor }, grid: { color: 'transparent' } } }, plugins: { legend: { display: false } } }
-        });
+            const investmentVsProfitCtx = document.getElementById('investmentVsProfitChart').getContext('2d');
+            investmentChart = new Chart(investmentVsProfitCtx, {
+                type: 'bar', data: { labels: ['Inwestycja', 'Potencjalna Korzyść'], datasets: [{ data: [], backgroundColor: ['#E03616', '#64FFDA'], borderWidth: 1, borderRadius: 5 }] },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { color: chartTextColor, callback: (v) => formatCurrency(v) }, grid: { color: chartGridColor } }, y: { ticks: { color: chartTextColor }, grid: { color: 'transparent' } } }, plugins: { legend: { display: false } } }
+            });
+        }
 
         let currentDuration = '1';
         const durationButtons = document.querySelectorAll('.duration-btn');
@@ -242,13 +245,12 @@
         const configurator = document.getElementById('configurator');
         const offerContent = document.getElementById('offer-content');
 
-        function calculateAndDisplay() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const wps = parseFloat(urlParams.get('wps')) || parseFloat(document.getElementById('wps').value) || 0;
-            const savings = parseFloat(urlParams.get('savings')) || parseFloat(document.getElementById('savings').value) || 0;
-            const upfrontFee = parseFloat(urlParams.get('upfrontFee')) || parseFloat(document.getElementById('upfrontFee').value) || 0;
-            const successFeePerc = parseFloat(urlParams.get('successFee')) || parseFloat(document.getElementById('successFee').value) || 0;
-            const gender = urlParams.get('gender') || document.getElementById('gender').value;
+        function calculateAndDisplay(params) {
+            const wps = parseFloat(params.get('wps'));
+            const savings = parseFloat(params.get('savings'));
+            const upfrontFee = parseFloat(params.get('upfrontFee'));
+            const successFeePerc = parseFloat(params.get('successFee'));
+            const gender = params.get('gender');
 
             const genderForms = {
                 'Pani': { base: 'Pani', dopelniacz: 'Pani', celownik: 'Pani', dopelniaczUpper: 'PANI' },
@@ -316,9 +318,9 @@
             if (activeTable) activeTable.classList.add('active');
             
             const urlParams = new URLSearchParams(window.location.search);
-            const wps = parseFloat(urlParams.get('wps')) || parseFloat(document.getElementById('wps').value) || 0;
-            const savings = parseFloat(urlParams.get('savings')) || parseFloat(document.getElementById('savings').value) || 0;
-            const upfrontFee = parseFloat(urlParams.get('upfrontFee')) || parseFloat(document.getElementById('upfrontFee').value) || 0;
+            const wps = parseFloat(urlParams.get('wps'));
+            const savings = parseFloat(urlParams.get('savings'));
+            const upfrontFee = parseFloat(urlParams.get('upfrontFee'));
 
             const interest1Y = wps * 0.105;
             const interest2Y = wps * 0.105 * 2;
@@ -346,7 +348,12 @@
 
             const params = new URLSearchParams({ wps, savings, upfrontFee, successFee, gender });
             const baseUrl = window.location.href.split('?')[0];
-            window.location.href = `${baseUrl}?${params.toString()}`;
+            const newUrl = `${baseUrl}?${params.toString()}`;
+            
+            window.history.pushState({path: newUrl}, '', newUrl);
+            configurator.classList.add('hidden');
+            offerContent.classList.remove('hidden');
+            calculateAndDisplay(params);
         });
 
         durationButtons.forEach(button => {
@@ -363,7 +370,11 @@
             if (urlParams.has('wps')) {
                 configurator.classList.add('hidden');
                 offerContent.classList.remove('hidden');
-                calculateAndDisplay();
+                initializeCharts();
+                calculateAndDisplay(urlParams);
+            } else {
+                configurator.classList.remove('hidden');
+                offerContent.classList.add('hidden');
             }
         });
 
